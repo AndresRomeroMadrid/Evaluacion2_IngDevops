@@ -1,0 +1,23 @@
+# Dependencias Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cobertura de pruebas (Jest / LCOV)
+coverage/
+.nyc_output/
+
+# Logs del sistema y variables locales
+*.log
+.env
+.env.local
+
+# Trazabilidad local
+.trazabilidad/
+
+# Archivos de sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

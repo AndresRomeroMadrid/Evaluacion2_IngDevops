@@ -1,0 +1,41 @@
+{
+  "name": "microservicio-creacion",
+  "version": "1.0.0",
+  "description": "Microservicio 1: Responsable de la creación, almacenamiento en lista y consulta del catálogo de productos (Mouse, Teclado, Monitor, etc.)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "jest --coverage --detectOpenHandles --forceExit"
+  },
+  "keywords": [
+    "microservices",
+    "devops",
+    "express",
+    "nodejs"
+  ],
+  "author": "Ingenieria DevOps - Duoc UC",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/server.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    }
+  }
+}

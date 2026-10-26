@@ -1,0 +1,108 @@
+# ==============================================================================
+# ORQUESTACIÓN CON DOCKER COMPOSE (IE5 & IE3)
+# ==============================================================================
+# Orquesta la solución completa de microservicios:
+#   1. service-create: Microservicio 1 (Catálogo e inserción de Mouse, Teclado, Monitor)
+#   2. service-update: Microservicio 2 (Actualización de precios/datos y auditoría)
+#   3. frontend: Dashboard web interactivo para operaciones CRUD
+#
+# Características de Gobernanza y Rendimiento (IE3):
+#   - Límites de recursos (CPU y Memoria) definidos por contenedor.
+#   - Red aislada tipo bridge (devops-network).
+#   - Políticas de reinicio y healthchecks síncronos con depends_on condicional.
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # Microservicio 1: Creación y Consulta de Productos (Node.js Alpine Multi-stage)
+  service-create:
+    build:
+      context: ./microservicio-creacion
+      dockerfile: Dockerfile
+    container_name: microservicio-creacion-app
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 64M
+    networks:
+      - devops-network
+
+  # Microservicio 2: Actualización y Reglas de Negocio (Node.js Debian Slim)
+  service-update:
+    build:
+      context: ./microservicio-actualizacion
+      dockerfile: Dockerfile
+    container_name: microservicio-actualizacion-app
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - CREATE_SERVICE_URL=http://service-create:3001
+    depends_on:
+      service-create:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 64M
+    networks:
+      - devops-network
+
+  # Frontend Dashboard Web (Node.js Express BFF)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-dashboard-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - CREATE_SERVICE_URL=http://service-create:3001
+      - UPDATE_SERVICE_URL=http://service-update:3002
+    depends_on:
+      service-create:
+        condition: service_healthy
+      service-update:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 64M
+    networks:
+      - devops-network
+
+# Red interna aislada para la comunicación entre microservicios
+networks:
+  devops-network:
+    driver: bridge
+    name: devops-microservicios-net

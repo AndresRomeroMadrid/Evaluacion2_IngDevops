@@ -1,0 +1,69 @@
+# ==============================================================================
+# CONFIGURACIÓN DE DEPENDABOT (IE3)
+# ==============================================================================
+# Escaneo automatizado de dependencias y actualizaciones de seguridad
+# para ecosistemas npm, GitHub Actions y contenedores Docker.
+# ==============================================================================
+
+version: 2
+updates:
+  # Monitoreo de dependencias de Microservicio 1 (Creación)
+  - package-ecosystem: "npm"
+    directory: "/microservicio-creacion"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Santiago"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+      - "microservicio-creacion"
+    commit-message:
+      prefix: "chore(deps-creacion)"
+
+  # Monitoreo de dependencias de Microservicio 2 (Actualización)
+  - package-ecosystem: "npm"
+    directory: "/microservicio-actualizacion"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Santiago"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+      - "microservicio-actualizacion"
+    commit-message:
+      prefix: "chore(deps-actualizacion)"
+
+  # Monitoreo de dependencias de Frontend
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Santiago"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "frontend"
+    commit-message:
+      prefix: "chore(deps-frontend)"
+
+  # Monitoreo de versiones de acciones en GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Santiago"
+    labels:
+      - "ci-cd"
+      - "actions"
+    commit-message:
+      prefix: "ci(actions)"

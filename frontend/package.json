@@ -1,0 +1,20 @@
+{
+  "name": "frontend-dashboard",
+  "version": "1.0.0",
+  "description": "Frontend web responsivo para interactuar con los microservicios de creación y actualización de productos",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "frontend",
+    "dashboard",
+    "microservices",
+    "devops"
+  ],
+  "author": "Ingenieria DevOps - Duoc UC",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.1"
+  }
+}

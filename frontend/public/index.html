@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Productos - Microservicios DevOps</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Contenedor de Alertas Toast -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Encabezado Principal -->
+  <header class="header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="badge-devops">DevOps CI/CD</div>
+        <h1>Evaluación Parcial N°2 &bull; Sistema de Microservicios</h1>
+        <p class="subtitle">Catálogo de Productos (Mouse, Teclado, Monitor) en Node.js con Docker & GitHub Actions</p>
+      </div>
+      
+      <!-- Estado de los Microservicios -->
+      <div class="service-status-bar">
+        <div class="status-card" id="status-creacion">
+          <div class="status-indicator loading"></div>
+          <div>
+            <div class="service-name">Microservicio 1 (Creación)</div>
+            <div class="service-endpoint">:3001 | Catálogo</div>
+          </div>
+        </div>
+        <div class="status-card" id="status-actualizacion">
+          <div class="status-indicator loading"></div>
+          <div>
+            <div class="service-name">Microservicio 2 (Actualización)</div>
+            <div class="service-endpoint">:3002 | Auditoría</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido Central -->
+  <main class="main-container">
+    
+    <!-- Sección de Creación / Inserción -->
+    <section class="card form-card">
+      <div class="card-header">
+        <div class="icon-circle icon-create">+</div>
+        <div>
+          <h2>Insertar Nuevo Producto</h2>
+          <p class="card-desc">Operación ejecutada por el <strong>Microservicio de Creación</strong> (Puerto 3001)</p>
+        </div>
+      </div>
+      <form id="form-crear" class="form-grid">
+        <div class="form-group">
+          <label for="nombre">Nombre del Producto *</label>
+          <input type="text" id="nombre" name="nombre" placeholder="Ej. Mouse Gamer, Teclado, Monitor..." required>
+        </div>
+        <div class="form-group">
+          <label for="precio">Precio (CLP $) *</label>
+          <input type="number" id="precio" name="precio" placeholder="Ej. 19990" min="1" required>
+        </div>
+        <div class="form-group full-width">
+          <label for="descripcion">Descripción del Producto *</label>
+          <textarea id="descripcion" name="descripcion" rows="2" placeholder="Especificaciones técnicas, características destacadas..." required></textarea>
+        </div>
+        <div class="form-actions full-width">
+          <button type="submit" class="btn btn-primary" id="btn-crear">
+            <span class="btn-icon">💾</span> Insertar a la Lista
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('form-crear').reset()">
+            Limpiar
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Sección de Lista de Productos -->
+    <section class="card table-card">
+      <div class="card-header-actions">
+        <div>
+          <h2>Productos Almacenados en la Lista</h2>
+          <p class="card-desc">Almacén en memoria gestionado por el microservicio con carga inicial de Mouse, Teclado y Monitor</p>
+        </div>
+        <div class="actions-right">
+          <button class="btn btn-refresh" id="btn-refrescar" title="Actualizar datos">
+            🔄 Refrescar
+          </button>
+          <span class="badge-counter" id="total-productos">0 productos</span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table" id="tabla-productos">
+          <thead>
+            <tr>
+              <th style="width: 70px;">ID</th>
+              <th style="width: 180px;">Producto</th>
+              <th style="width: 130px;">Precio</th>
+              <th>Descripción</th>
+              <th style="width: 160px; text-align: center;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="lista-productos-body">
+            <tr>
+              <td colspan="5" class="table-loading">Cargando productos desde el microservicio...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Sección de Trazabilidad y Auditoría de Actualizaciones -->
+    <section class="card audit-card">
+      <div class="card-header">
+        <div class="icon-circle icon-audit">📋</div>
+        <div>
+          <h2>Historial de Auditoría de Actualizaciones</h2>
+          <p class="card-desc">Trazabilidad gestionada por el <strong>Microservicio de Actualización</strong> (Puerto 3002)</p>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table" id="tabla-auditoria">
+          <thead>
+            <tr>
+              <th style="width: 60px;"># Ev.</th>
+              <th style="width: 150px;">Producto</th>
+              <th style="width: 140px;">Precio Ant.</th>
+              <th style="width: 140px;">Precio Nvo.</th>
+              <th>Motivo de Cambio</th>
+              <th style="width: 180px;">Fecha y Hora</th>
+            </tr>
+          </thead>
+          <tbody id="lista-auditoria-body">
+            <tr>
+              <td colspan="6" class="table-empty">No se han registrado modificaciones todavía.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal para Actualizar Producto (Microservicio 2) -->
+  <div id="modal-editar" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="icon-circle icon-edit">✏️</div>
+        <div>
+          <h3>Actualizar Información de Producto</h3>
+          <p class="modal-desc">Operación procesada por el Microservicio de Actualización</p>
+        </div>
+        <button class="modal-close" id="modal-close-btn">&times;</button>
+      </div>
+      <form id="form-editar">
+        <input type="hidden" id="edit-id">
+        <div class="form-group">
+          <label for="edit-nombre">Nombre del Producto</label>
+          <input type="text" id="edit-nombre" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-precio">Nuevo Precio (CLP $) *</label>
+          <input type="number" id="edit-precio" min="1" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-descripcion">Descripción *</label>
+          <textarea id="edit-descripcion" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="edit-motivo">Motivo de la Modificación (Trazabilidad)</label>
+          <input type="text" id="edit-motivo" placeholder="Ej. Ajuste de tarifa, corrección de descripción..." value="Actualización manual desde Dashboard">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Cancelar</button>
+          <button type="submit" class="btn btn-warning" id="btn-guardar-edicion">
+            <span class="btn-icon">⚡</span> Guardar Cambios (Microservicio 2)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>Ingeniería DevOps &bull; DUOC UC &bull; Evaluación Parcial N°2 &bull; 2026</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
