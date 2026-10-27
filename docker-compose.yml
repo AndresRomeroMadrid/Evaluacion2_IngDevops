@@ -12,8 +12,6 @@
 #   - Políticas de reinicio y healthchecks síncronos con depends_on condicional.
 # ==============================================================================
 
-version: '3.8'
-
 services:
   # Microservicio 1: Creación y Consulta de Productos (Node.js Alpine Multi-stage)
   service-create:
