@@ -15,6 +15,6 @@
   "author": "Ingenieria DevOps - Duoc UC",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.21.1"
+    "express": "^5.3.0"
   }
 }
