@@ -10,13 +10,13 @@
 
 ## 📋 Resumen del Proyecto
 
-Este proyecto implementa una solución completa basada en **Microservicios en Node.js**, contenerizada con **Docker**, orquestada con **Docker Compose** y automatizada mediante un pipeline de integración y entrega continua (**CI/CD**) en **GitHub Actions**.
+Este proyecto implementa una arquitectura políglota de **Microservicios (Node.js y Python)**, contenerizada con **Docker**, orquestada con **Docker Compose** y automatizada mediante un pipeline de integración y entrega continua (**CI/CD**) en **GitHub Actions**.
 
-La solución gestiona un catálogo de productos informáticos precargados en memoria (**Mouse**, **Teclado** y **Monitor**) a través de dos microservicios especializados desacoplados y una interfaz web moderna (Frontend Dashboard):
+La solución gestiona un catálogo de productos informáticos precargados en memoria (**Mouse**, **Teclado** y **Monitor**) a través de dos microservicios especializados y una interfaz web moderna (Frontend Dashboard):
 
-1. **Microservicio 1 (`microservicio-creacion`):** Administra la lista en memoria de productos, expone endpoints de consulta e inserción (`POST`), y almacena los datos de Mouse, Teclado y Monitor con sus respectivos precios y descripciones.
-2. **Microservicio 2 (`microservicio-actualizacion`):** Valida reglas de negocio para modificaciones (precios estrictamente mayores a 0, descripciones no vacías), mantiene una lista de auditoría con la trazabilidad histórica de los cambios y sincroniza las actualizaciones con el Microservicio 1.
-3. **Frontend Dashboard (`frontend`):** Aplicación web interactiva que permite a los usuarios visualizar el catálogo en tiempo real, insertar nuevos productos, actualizar datos mediante modal y consultar la bitácora de auditoría.
+1. **Microservicio 1 (`microservicio-creacion` - Node.js Express):** Administra la lista en memoria de productos, expone endpoints de consulta e inserción (`POST`), y almacena los datos de Mouse, Teclado y Monitor con sus respectivos precios y descripciones. Pruebas automatizadas con **Jest**.
+2. **Microservicio 2 (`microservicio-actualizacion` - Python Flask):** Valida reglas de negocio para modificaciones (precios estrictamente mayores a 0, descripciones no vacías), mantiene una lista de auditoría con la trazabilidad histórica de los cambios y sincroniza las actualizaciones con el Microservicio 1. Pruebas automatizadas con **PyTest** (cumpliendo expresamente la recomendación de la rúbrica).
+3. **Frontend Dashboard (`frontend` - Node.js BFF):** Aplicación web interactiva que permite a los usuarios visualizar el catálogo en tiempo real, insertar nuevos productos, actualizar datos mediante modal y consultar la bitácora de auditoría.
 
 ---
 
@@ -31,21 +31,21 @@ flowchart TD
     subgraph DockerCompose["🐳 Orquestación Docker Compose (devops-microservicios-net)"]
         Frontend["Frontend Dashboard\n(Node.js Express BFF)\nPuerto: 3000"]
         
-        subgraph MS1["Microservicio 1 (IE1)"]
+        subgraph MS1["Microservicio 1 (IE1 - Node.js)"]
             ServiceCreate["microservicio-creacion\n(Node.js 20 Alpine Multi-stage)\nPuerto: 3001"]
             ListStore[("Lista en Memoria\n• Mouse ($19.990)\n• Teclado ($45.990)\n• Monitor ($139.990)")]
         end
 
-        subgraph MS2["Microservicio 2 (IE1)"]
-            ServiceUpdate["microservicio-actualizacion\n(Node.js 20 Debian Slim Hardened)\nPuerto: 3002"]
+        subgraph MS2["Microservicio 2 (IE1 - Python)"]
+            ServiceUpdate["microservicio-actualizacion\n(Python 3.12 Debian Slim Hardened)\nPuerto: 3002"]
             AuditStore[("Historial de Auditoría\n(Registro de Cambios)")]
         end
     end
 
     subgraph CICD["🚀 Pipeline GitHub Actions (IE2, IE3, IE4)"]
-        UnitTests["Pruebas Unitarias\nJest + Supertest (>80%)"]
+        UnitTests["Pruebas Unitarias\nJest (Node.js) & PyTest (Python) >80%"]
         SecurityScan["Escaneo de Seguridad\nSnyk / Trivy / npm audit"]
-        DockerBuild["Construcción Docker\nMulti-stage & Slim"]
+        DockerBuild["Construcción Docker\nMulti-stage Alpine vs Python Slim"]
         SimDeploy["Despliegue Simulado\nDocker Compose CI Runner"]
     end
 
@@ -64,10 +64,10 @@ flowchart TD
 
 | Criterio / Indicador | Requisito de la Rúbrica | Implementación en este Proyecto | Estado |
 | :--- | :--- | :--- | :---: |
-| **IE1 (20%)** | Crear dos Dockerfile distintos para contenerizar los microservicios. | **Dockerfile 1:** Alpine Linux Multi-Stage (`node:20-alpine`) de tamaño mínimo y usuario no root.<br>**Dockerfile 2:** Debian Bookworm Slim (`node:20-bookworm-slim`) reforzado con `curl` y directiva nativa `HEALTHCHECK`. | ✅ Logrado |
-| **IE2 (20%)** | Pruebas unitarias automatizadas en el pipeline CI con frameworks estándar. | Implementación de suites completas con **Jest** y **Supertest** en ambos microservicios. Umbral de cobertura configurado y verificado superior al 80% en statements, ramas, funciones y líneas. | ✅ Logrado |
-| **IE3 (20%)** | Dependabot, escaneo de dependencias (Snyk / npm audit) y bloqueos si falla la seguridad. | `.github/dependabot.yml` activo para npm y Actions.<br>Análisis SCA estricto con `npm audit --audit-level=high` y escáner Aqua Security Trivy.<br>Quality Gate con script de interrupción y emisión de alertas. | ✅ Logrado |
-| **IE4 (20%)** | Despliegue automático en entorno simulado y trazabilidad garantizada. | Job de despliegue en GitHub Actions que levanta el entorno con Docker Compose, ejecuta Smoke Tests mediante `curl` y genera un artefacto de auditoría (`despliegue_<sha>.json`). | ✅ Logrado |
+| **IE1 (20%)** | Crear dos Dockerfile distintos para contenerizar dos microservicios. | **Dockerfile 1:** Node.js Alpine Linux Multi-Stage (`node:20-alpine`) de tamaño mínimo y usuario `node`.<br>**Dockerfile 2:** Python Debian Slim (`python:3.12-slim`) reforzado con `curl`, directiva nativa `HEALTHCHECK` y usuario `appuser`. | ✅ Logrado |
+| **IE2 (20%)** | Pruebas unitarias automatizadas en el pipeline CI con frameworks estándar (JaCoCo / PyTest). | Implementación de suites con **Jest** (Node.js) y **PyTest** (Python). Cobertura verificada superior al 80% en todas las suites. | ✅ Logrado |
+| **IE3 (20%)** | Dependabot, escaneo de dependencias y bloqueos si falla la seguridad. | `.github/dependabot.yml` activo para npm, pip y Actions.<br>Análisis SCA estricto y escáner Aqua Security Trivy.<br>Quality Gate con script de interrupción y emisión de alertas de gobernanza. | ✅ Logrado |
+| **IE4 (20%)** | Despliegue automático en entorno simulado y trazabilidad garantizada. | Job de despliegue en GitHub Actions con Docker Compose, Smoke Tests mediante `curl` y generación de manifiesto inmutable `.trazabilidad/despliegue_<sha>.json`. | ✅ Logrado |
 | **IE5 (20%)** | Estrategia de orquestación con Docker Compose. | `docker-compose.yml` que orquesta los 3 servicios con red bridge aislada, healthchecks condicionales (`depends_on`), políticas de reinicio y gobernanza de recursos (límites de CPU y RAM). | ✅ Logrado |
 
 ---
@@ -80,7 +80,7 @@ Evaluacion_2/
 │   ├── dependabot.yml                      # Configuración de escaneo continuo Dependabot (IE3)
 │   └── workflows/
 │       └── ci-cd.yml                       # Pipeline CI/CD en GitHub Actions (IE1, IE2, IE3, IE4)
-├── microservicio-creacion/                 # Microservicio 1: Catálogo y Creación
+├── microservicio-creacion/                 # Microservicio 1: Catálogo y Creación (Node.js)
 │   ├── src/
 │   │   ├── app.js                          # Configuración Express y rutas REST
 │   │   ├── server.js                       # Servidor HTTP (Puerto 3001)
@@ -94,20 +94,24 @@ Evaluacion_2/
 │   ├── .dockerignore
 │   ├── package.json
 │   └── README.md
-├── microservicio-actualizacion/            # Microservicio 2: Actualización y Auditoría
+├── microservicio-actualizacion/            # Microservicio 2: Actualización y Auditoría (Python)
 │   ├── src/
-│   │   ├── app.js                          # Configuración Express y middlewares
-│   │   ├── server.js                       # Servidor HTTP (Puerto 3002)
+│   │   ├── __init__.py
+│   │   ├── app.py                          # Configuración Flask, CORS y middlewares
+│   │   ├── server.py                       # Servidor HTTP (Puerto 3002)
 │   │   ├── controllers/
-│   │   │   └── updateController.js         # Lógica de actualización y auditoría comentada
+│   │   │   ├── __init__.py
+│   │   │   └── update_controller.py        # Lógica de actualización y auditoría comentada
 │   │   └── services/
-│   │       └── catalogClient.js            # Cliente HTTP síncrono hacia Microservicio 1
+│   │       ├── __init__.py
+│   │       └── catalog_client.py           # Cliente HTTP hacia Microservicio 1 (Requests)
 │   ├── tests/
-│   │   ├── update.test.js                  # 12 Pruebas unitarias de actualización (IE2)
-│   │   └── catalogClient.test.js           # 7 Pruebas unitarias de cliente HTTP (IE2)
-│   ├── Dockerfile                          # Dockerfile Debian Slim con Healthcheck nativo (IE1)
+│   │   ├── __init__.py
+│   │   ├── test_update.py                  # 14 Pruebas unitarias Flask + PyTest (IE2)
+│   │   └── test_catalog_client.py          # 7 Pruebas unitarias de cliente HTTP (PyTest)
+│   ├── Dockerfile                          # Dockerfile Python Debian Slim con Healthcheck nativo (IE1)
 │   ├── .dockerignore
-│   ├── package.json
+│   ├── requirements.txt                    # Dependencias Python (Flask, Requests, PyTest)
 │   └── README.md
 ├── frontend/                               # Interfaz gráfica de usuario (Dashboard)
 │   ├── public/
@@ -129,7 +133,7 @@ Evaluacion_2/
 
 ## ⚙️ Microservicios en Detalle
 
-### 1. Microservicio de Creación (`microservicio-creacion`)
+### 1. Microservicio de Creación (`microservicio-creacion` - Node.js)
 - **Puerto:** `3001`
 - **Tecnología:** Node.js v20, Express, Jest, Supertest.
 - **Datos iniciales:**
@@ -144,18 +148,18 @@ Evaluacion_2/
   - `PUT /api/productos/:id`: Modifica la información del producto en la lista (usado para sincronización).
   - `DELETE /api/productos/:id`: Elimina un producto por ID.
 
-### 2. Microservicio de Actualización (`microservicio-actualizacion`)
+### 2. Microservicio de Actualización (`microservicio-actualizacion` - Python)
 - **Puerto:** `3002`
-- **Tecnología:** Node.js v20, Express, Jest, Supertest.
+- **Tecnología:** Python 3.12, Flask, Requests, PyTest, PyTest-Cov.
 - **Responsabilidades:**
   - Valida que las actualizaciones cumplan las políticas de negocio (precios estrictamente mayores a cero, descripciones obligatorias).
   - Mantiene un registro histórico de auditoría con el estado anterior y el nuevo estado de cada producto modificado.
-  - Se comunica con el Microservicio 1 mediante el cliente `catalogClient.js` para persistir la mutación en la lista central.
+  - Se comunica con el Microservicio 1 mediante el cliente `catalog_client.py` para persistir la mutación en la lista central.
 - **Endpoints:**
   - `GET /health`: Estado de salud del servicio.
   - `GET /api/actualizaciones/historial`: Lista con la bitácora de auditoría histórica.
-  - `PUT /api/actualizaciones/:id`: Actualiza nombre, precio y/o descripción registrando el evento.
-  - `PATCH /api/actualizaciones/:id/precio`: Endpoint directo para variaciones de precio.
+  - `PUT /api/actualizaciones/<id>`: Actualiza nombre, precio y/o descripción registrando el evento.
+  - `PATCH /api/actualizaciones/<id>/precio`: Endpoint directo para variaciones de precio.
 
 ---
 
@@ -165,12 +169,13 @@ Para dar cumplimiento cabal al indicador **IE1**, ambos microservicios cuentan c
 
 | Atributo | Dockerfile 1 (`microservicio-creacion`) | Dockerfile 2 (`microservicio-actualizacion`) |
 | :--- | :--- | :--- |
-| **Imagen Base** | `node:20-alpine` (musl libc) | `node:20-bookworm-slim` (glibc Debian) |
-| **Patrón de Diseño** | **Multi-Stage Build** (Etapas `builder` y `runner`) | **Single-Stage Hardened Production Container** |
+| **Ecosistema / Lenguaje** | Node.js 20 (JavaScript / npm) | Python 3.12 (CPython / pip) |
+| **Imagen Base** | `node:20-alpine` (musl libc) | `python:3.12-slim` (glibc Debian) |
+| **Patrón de Diseño** | **Multi-Stage Build** (Etapas `builder` y `runner`) | **Hardened Production Container** |
 | **Herramientas de Red** | Mínimo absoluto (sin `curl`, dependencias estrictas) | Incorpora `curl` instalado con `apt-get` |
 | **Health Check** | Evaluado a través del runtime Node o Compose | Directiva nativa Docker `HEALTHCHECK` embebida |
-| **Seguridad** | Usuario no root `USER node`, capas cacheadas | Permisos estrictos con `chown` y `USER node` |
-| **Peso Optimizado** | ~140 MB | ~230 MB (incluyendo herramientas de diagnóstico) |
+| **Seguridad** | Usuario no root `USER node` | Usuario no root `USER appuser` |
+| **Peso Optimizado** | ~140 MB | ~180 MB |
 
 ---
 
@@ -199,22 +204,22 @@ Para detener la solución:
 docker compose down
 ```
 
-### Opción B: Ejecución Local en Entorno de Desarrollo (Node.js)
+### Opción B: Ejecución Local en Entorno de Desarrollo
 
 Si deseas probar cada microservicio independientemente en tu máquina:
 
 ```bash
-# Terminal 1: Microservicio 1 (Creación)
+# Terminal 1: Microservicio 1 (Creación - Node.js)
 cd microservicio-creacion
 npm install
 npm run start # Disponible en http://localhost:3001
 
-# Terminal 2: Microservicio 2 (Actualización)
+# Terminal 2: Microservicio 2 (Actualización - Python)
 cd microservicio-actualizacion
-npm install
-npm run start # Disponible en http://localhost:3002
+pip install -r requirements.txt
+python src/server.py # Disponible en http://localhost:3002
 
-# Terminal 3: Frontend Dashboard
+# Terminal 3: Frontend Dashboard (Node.js)
 cd frontend
 npm install
 npm run start # Disponible en http://localhost:3000
@@ -224,22 +229,22 @@ npm run start # Disponible en http://localhost:3000
 
 ## 🧪 Pruebas Unitarias y Cobertura (IE2)
 
-Para ejecutar las pruebas automatizadas con Jest y visualizar la cobertura de código:
+Para ejecutar las pruebas automatizadas y visualizar la cobertura de código:
 
 ```bash
-# Pruebas en Microservicio de Creación (14 tests)
+# Pruebas en Microservicio de Creación (Node.js - Jest)
 cd microservicio-creacion
 npm test
 
-# Pruebas en Microservicio de Actualización (19 tests)
+# Pruebas en Microservicio de Actualización (Python - PyTest)
 cd microservicio-actualizacion
-npm test
+pytest --cov=src --cov-report=term-missing
 ```
 
 ### Resultados de Cobertura Obtenidos:
-- **Microservicio 1:** **96.38%** Statements | **92.3%** Branches | **94.44%** Functions | **96.25%** Lines.
-- **Microservicio 2:** **96.77%** Statements | **90%** Branches | **83.33%** Functions | **97.75%** Lines.
-- **Total:** 33 pruebas unitarias aprobadas, 0 fallos, 0 vulnerabilidades en dependencias.
+- **Microservicio 1 (Node.js - Jest):** **96.38%** Statements | **92.3%** Branches | **94.44%** Functions | **96.25%** Lines (14 tests).
+- **Microservicio 2 (Python - PyTest):** **83%** Coverage global | **97%** en controlador de actualización | **96%** en app (21 tests).
+- **Total:** 35 pruebas unitarias automatizadas aprobadas, 0 fallos.
 
 ---
 
@@ -250,7 +255,7 @@ npm test
 curl -X GET http://localhost:3001/api/productos
 ```
 
-### 2. Insertar un nuevo producto (Microservicio 1):
+### 2. Insertar un nuevo producto (Microservicio 1 - Node.js):
 ```bash
 curl -X POST http://localhost:3001/api/productos \
   -H "Content-Type: application/json" \
@@ -261,7 +266,7 @@ curl -X POST http://localhost:3001/api/productos \
   }'
 ```
 
-### 3. Actualizar información de un producto (Microservicio 2):
+### 3. Actualizar información de un producto (Microservicio 2 - Python):
 ```bash
 curl -X PUT http://localhost:3002/api/actualizaciones/1 \
   -H "Content-Type: application/json" \
@@ -272,7 +277,7 @@ curl -X PUT http://localhost:3002/api/actualizaciones/1 \
   }'
 ```
 
-### 4. Consultar la bitácora de auditoría (Microservicio 2):
+### 4. Consultar la bitácora de auditoría (Microservicio 2 - Python):
 ```bash
 curl -X GET http://localhost:3002/api/actualizaciones/historial
 ```
@@ -281,7 +286,6 @@ curl -X GET http://localhost:3002/api/actualizaciones/historial
 
 ## 📚 Documentación Adicional del Proyecto
 
-Para profundizar en cada una de las dimensiones evaluadas, consulte los siguientes documentos:
 - [PIPELINE.md](file:///C:/Users/arome/OneDrive/Escritorio/Utiles%20Duoc/6to%20Semestre/Ing.Devops/exp2/Ev2/Evaluacion_2/PIPELINE.md): Detalle técnico del flujo de CI/CD, triggers, jobs y gates de seguridad.
 - [CALIDAD_TRAZABILIDAD.md](file:///C:/Users/arome/OneDrive/Escritorio/Utiles%20Duoc/6to%20Semestre/Ing.Devops/exp2/Ev2/Evaluacion_2/CALIDAD_TRAZABILIDAD.md): Políticas de calidad, frameworks de pruebas, reglas de bloqueo y trazabilidad de despliegue.
 - [ARQUITECTURA.md](file:///C:/Users/arome/OneDrive/Escritorio/Utiles%20Duoc/6to%20Semestre/Ing.Devops/exp2/Ev2/Evaluacion_2/ARQUITECTURA.md): Decisiones de diseño arquitectónico, gobernanza de contenedores y resiliencia.

@@ -7,12 +7,12 @@
 
 ## 🏛️ 1. Patrones Arquitectónicos Aplicados
 
-La solución fue diseñada siguiendo principios de **Arquitectura Cloud Native** y **Microservicios Desacoplados**:
+La solución fue diseñada siguiendo principios de **Arquitectura Cloud Native** y **Microservicios Políglotas Desacoplados**:
 
 ### 1.1 Separación de Responsabilidades (Single Responsibility Principle)
-En lugar de una aplicación monolítica, el dominio de gestión de productos se fragmentó en dos servicios independientes:
-- **`microservicio-creacion`:** Propietario del almacén de datos (lista en memoria) y responsable del ciclo de vida de creación y lectura de productos (**Mouse**, **Teclado**, **Monitor**).
-- **`microservicio-actualizacion`:** Encargado de la lógica de negocio asociada a mutaciones de información, reglas de validación tarifaria y persistencia de registros de auditoría.
+En lugar de una aplicación monolítica, el dominio de gestión de productos se fragmentó en dos servicios independientes con diferentes lenguajes y propósitos:
+- **`microservicio-creacion` (Node.js):** Propietario del almacén de datos (lista en memoria) y responsable del ciclo de vida de creación y lectura de productos (**Mouse**, **Teclado**, **Monitor**).
+- **`microservicio-actualizacion` (Python):** Encargado de la lógica de negocio asociada a mutaciones de información, reglas de validación tarifaria y persistencia de registros de auditoría.
 
 ### 1.2 Patrón BFF (Backend For Frontend)
 El componente `frontend` expone una interfaz visual responsiva y actúa simultáneamente como un BFF ligero en Node.js Express. Enruta peticiones hacia los microservicios internos mediante `/api/proxy/creacion` y `/api/proxy/actualizacion`, resolviendo problemas de CORS en navegadores y permitiendo una comunicación transparente tanto en entornos Docker como en ejecución local.
@@ -21,29 +21,30 @@ El componente `frontend` expone una interfaz visual responsiva y actúa simultá
 
 ## 🐳 2. Estrategia de Contenerización Diferenciada (IE1)
 
-Para satisfacer el requerimiento **IE1** (*"Crear dos Dockerfile para contenerizar dos microservicio libre elección y distinto uno del otro"*), se implementaron dos filosofías de empaquetado:
+Para satisfacer el requerimiento **IE1** (*"Crear dos Dockerfile para contenerizar dos microservicio libre elección y distinto uno del otro"*), se implementaron dos filosofías de empaquetado y ecosistemas tecnológicos totalmente distintos:
 
 ```mermaid
 graph LR
-    subgraph MS1["Microservicio 1 (Creación)"]
+    subgraph MS1["Microservicio 1 (Creación - Node.js)"]
         A[Etapa Builder: node:20-alpine] -->|npm ci --omit=dev| B[Etapa Runner: node:20-alpine]
         B --> C[Imagen Ultra Liviana ~140MB]
     end
 
-    subgraph MS2["Microservicio 2 (Actualización)"]
-        D[node:20-bookworm-slim] -->|apt-get install curl| E[Capa Reforzada con Diagnóstico]
-        E --> F[HEALTHCHECK Nativo Docker]
+    subgraph MS2["Microservicio 2 (Actualización - Python)"]
+        D[python:3.12-slim] -->|apt-get install curl| E[Capa Reforzada con Diagnóstico]
+        E --> F[HEALTHCHECK Nativo Docker & appuser]
     end
 ```
 
 ### Justificación Técnica:
-1. **Dockerfile 1 (Alpine Multi-Stage):**
+1. **Dockerfile 1 (Node.js Alpine Multi-Stage):**
    - Utiliza la biblioteca estándar `musl libc`, logrando una reducción drástica del tamaño de la imagen final.
    - La separación de etapas descarta herramientas temporales y dependencias no productivas.
-   - Ejecuta bajo usuario `node` (UID 1000) sin acceso a root.
-2. **Dockerfile 2 (Debian Slim Hardened):**
-   - Basado en Debian `glibc`, ofreciendo máxima compatibilidad con librerías nativas y herramientas de sistema.
+   - Ejecuta bajo usuario no root `node` (UID 1000).
+2. **Dockerfile 2 (Python Debian Slim Hardened):**
+   - Basado en Debian `glibc` con el runtime oficial de Python 3.12.
    - Instala explícitamente `curl` para dotar al contenedor de capacidades de introspección y soporte nativo de la directiva `HEALTHCHECK` del Docker Engine.
+   - Ejecuta bajo usuario no root `appuser` (UID 1000 / GID 1000).
 
 ---
 

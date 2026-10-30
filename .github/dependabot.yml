@@ -23,8 +23,8 @@ updates:
     commit-message:
       prefix: "chore(deps-creacion)"
 
-  # Monitoreo de dependencias de Microservicio 2 (Actualización)
-  - package-ecosystem: "npm"
+  # Monitoreo de dependencias de Microservicio 2 (Actualización - Python)
+  - package-ecosystem: "pip"
     directory: "/microservicio-actualizacion"
     schedule:
       interval: "weekly"

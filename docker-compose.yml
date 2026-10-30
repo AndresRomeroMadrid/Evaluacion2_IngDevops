@@ -42,7 +42,7 @@ services:
     networks:
       - devops-network
 
-  # Microservicio 2: Actualización y Reglas de Negocio (Node.js Debian Slim)
+  # Microservicio 2: Actualización y Reglas de Negocio (Python 3.12 Debian Slim)
   service-update:
     build:
       context: ./microservicio-actualizacion
@@ -52,7 +52,7 @@ services:
     ports:
       - "3002:3002"
     environment:
-      - NODE_ENV=production
+      - PYTHONUNBUFFERED=1
       - PORT=3002
       - CREATE_SERVICE_URL=http://service-create:3001
     depends_on:

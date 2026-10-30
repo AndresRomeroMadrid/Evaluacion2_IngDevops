@@ -5,9 +5,9 @@
 # Evaluación: Evaluación Parcial N°2
 #
 # Cumplimiento de Indicadores de Logro:
-#   - IE1: Construcción y optimización de contenedores Docker (Alpine vs Slim).
-#   - IE2: Ejecución de pruebas unitarias automatizadas y reporte de cobertura (Jest).
-#   - IE3: Escaneo de dependencias, análisis SAST (Snyk / npm audit) y bloqueos de seguridad.
+#   - IE1: Construcción y optimización de contenedores Docker (Node Alpine vs Python Slim).
+#   - IE2: Pruebas unitarias automatizadas con Jest (Node.js) y PyTest (Python) > 80%.
+#   - IE3: Escaneo de dependencias, análisis SAST (Trivy / npm audit) y bloqueos de seguridad.
 #   - IE4: Despliegue automático en entorno simulado y registro de trazabilidad.
 #   - IE5: Orquestación mediante Docker Compose con healthchecks y límites de recursos.
 # ==============================================================================
@@ -28,10 +28,10 @@ on:
 
 jobs:
   # ----------------------------------------------------------------------------
-  # ETAPA 1: PRUEBAS UNITARIAS Y COBERTURA DE CÓDIGO (IE2)
+  # ETAPA 1: PRUEBAS UNITARIAS Y COBERTURA DE CÓDIGO (IE2 - JEST Y PYTEST)
   # ----------------------------------------------------------------------------
   unit-tests:
-    name: 🧪 Pruebas Unitarias y Cobertura (Jest)
+    name: 🧪 Pruebas Unitarias y Cobertura (Jest & PyTest)
     runs-on: ubuntu-latest
 
     steps:
@@ -45,29 +45,36 @@ jobs:
           cache: 'npm'
           cache-dependency-path: |
             microservicio-creacion/package-lock.json
-            microservicio-actualizacion/package-lock.json
 
-      # Pruebas Microservicio 1
-      - name: 📦 Instalar dependencias (Microservicio 1 - Creación)
+      - name: ⚙️ Configurar Python (3.12)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: microservicio-actualizacion/requirements.txt
+
+      # Pruebas Microservicio 1 (Node.js - Jest)
+      - name: 📦 Instalar dependencias (Microservicio 1 - Creación Node.js)
         run: |
           cd microservicio-creacion
           npm ci
 
-      - name: 🧪 Ejecutar pruebas unitarias (Microservicio 1)
+      - name: 🧪 Ejecutar pruebas unitarias (Microservicio 1 - Jest)
         run: |
           cd microservicio-creacion
           npm test
 
-      # Pruebas Microservicio 2
-      - name: 📦 Instalar dependencias (Microservicio 2 - Actualización)
+      # Pruebas Microservicio 2 (Python - PyTest)
+      - name: 📦 Instalar dependencias (Microservicio 2 - Actualización Python)
         run: |
           cd microservicio-actualizacion
-          npm ci
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: 🧪 Ejecutar pruebas unitarias (Microservicio 2)
+      - name: 🧪 Ejecutar pruebas unitarias (Microservicio 2 - PyTest)
         run: |
           cd microservicio-actualizacion
-          npm test
+          pytest --cov=src --cov-report=term-missing --cov-report=html:coverage
 
       - name: 📊 Publicar artefactos de cobertura
         uses: actions/upload-artifact@v4
@@ -100,13 +107,7 @@ jobs:
       - name: 🔍 Escaneo SCA con npm audit (Microservicio Creación)
         run: |
           cd microservicio-creacion
-          echo "Auditando Microservicio de Creación..."
-          npm audit --audit-level=high
-
-      - name: 🔍 Escaneo SCA con npm audit (Microservicio Actualización)
-        run: |
-          cd microservicio-actualizacion
-          echo "Auditando Microservicio de Actualización..."
+          echo "Auditando Microservicio de Creación (Node.js)..."
           npm audit --audit-level=high
 
       - name: 🔍 Escaneo SCA con npm audit (Frontend)
@@ -114,7 +115,7 @@ jobs:
           cd frontend
           npm audit --audit-level=high
 
-      # Análisis con Snyk (si existe token configurado) o Trivy como analizador integral
+      # Análisis de Vulnerabilidades con Aqua Security Trivy
       - name: 🛡️ Análisis de Vulnerabilidades con Aqua Security Trivy
         uses: aquasecurity/trivy-action@master
         with:
@@ -151,7 +152,7 @@ jobs:
       - name: ⚙️ Configurar Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🐳 Construir Imagen Microservicio 1 (Alpine Multi-Stage)
+      - name: 🐳 Construir Imagen Microservicio 1 (Node Alpine Multi-Stage)
         uses: docker/build-push-action@v5
         with:
           context: ./microservicio-creacion
@@ -163,7 +164,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: 🐳 Construir Imagen Microservicio 2 (Debian Slim Hardened)
+      - name: 🐳 Construir Imagen Microservicio 2 (Python Debian Slim Hardened)
         uses: docker/build-push-action@v5
         with:
           context: ./microservicio-actualizacion
@@ -213,13 +214,13 @@ jobs:
         run: |
           echo "Realizando pruebas de disponibilidad de endpoints..."
           
-          # Health check Microservicio 1
+          # Health check Microservicio 1 (Node.js)
           curl --fail --retry 5 --retry-delay 3 http://localhost:3001/health || exit 1
-          echo " Microservicio 1 (Creación) respondiendo OK"
+          echo " Microservicio 1 (Creación - Node.js) respondiendo OK"
 
-          # Health check Microservicio 2
+          # Health check Microservicio 2 (Python)
           curl --fail --retry 5 --retry-delay 3 http://localhost:3002/health || exit 1
-          echo " Microservicio 2 (Actualización) respondiendo OK"
+          echo " Microservicio 2 (Actualización - Python) respondiendo OK"
 
           # Health check Frontend
           curl --fail --retry 5 --retry-delay 3 http://localhost:3000/health || exit 1
@@ -245,9 +246,9 @@ jobs:
             "entorno": "Simulado Cloud (Docker Compose CI)",
             "estado": "DESPLIEGUE_EXITOSO",
             "servicios": [
-              { "nombre": "service-create", "puerto": 3001, "imagen": "microservicio-creacion:${{ github.sha }}" },
-              { "nombre": "service-update", "puerto": 3002, "imagen": "microservicio-actualizacion:${{ github.sha }}" },
-              { "nombre": "frontend", "puerto": 3000, "imagen": "frontend-dashboard:${{ github.sha }}" }
+              { "nombre": "service-create", "lenguaje": "Node.js", "puerto": 3001, "imagen": "microservicio-creacion:${{ github.sha }}" },
+              { "nombre": "service-update", "lenguaje": "Python", "puerto": 3002, "imagen": "microservicio-actualizacion:${{ github.sha }}" },
+              { "nombre": "frontend", "lenguaje": "Node.js", "puerto": 3000, "imagen": "frontend-dashboard:${{ github.sha }}" }
             ]
           }
           EOF

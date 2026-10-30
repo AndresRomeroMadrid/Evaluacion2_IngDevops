@@ -10,6 +10,22 @@ node_modules/
 **/node_modules/
 package-lock.json.backup
 
+# Archivos y cachés de Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.pytest_cache/
+**/.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
 # Logs y depuración
 *.log
 **/*.log
