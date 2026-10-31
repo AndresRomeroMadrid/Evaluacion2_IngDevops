@@ -1,16 +1,8 @@
-# Proyecto DevOps - Evaluación Parcial N°2: Arquitectura de Microservicios CI/CD
-
-> **Institución:** DUOC UC  
-> **Carrera:** Ingeniería en Informática / Ingeniería DevOps  
-> **Asignatura:** Ingeniería DevOps (DOY0101)  
-> **Semestre:** 6to Semestre  
-> **Evaluación:** Evaluación Parcial N°2 - *Añadiéndole complejidad a nuestro pipeline*
+# Proyecto DevOps - Evaluación Parcial N°2: Arquitectura de Microservicios 
 
 ---
 
-## 📋 Resumen del Proyecto
-
-Este proyecto implementa una arquitectura políglota de **Microservicios (Node.js y Python)**, contenerizada con **Docker**, orquestada con **Docker Compose** y automatizada mediante un pipeline de integración y entrega continua (**CI/CD**) en **GitHub Actions**.
+## Aplicación
 
 La solución gestiona un catálogo de productos informáticos precargados en memoria (**Mouse**, **Teclado** y **Monitor**) a través de dos microservicios especializados y una interfaz web moderna (Frontend Dashboard):
 
@@ -18,57 +10,105 @@ La solución gestiona un catálogo de productos informáticos precargados en mem
 2. **Microservicio 2 (`microservicio-actualizacion` - Python Flask):** Valida reglas de negocio para modificaciones (precios estrictamente mayores a 0, descripciones no vacías), mantiene una lista de auditoría con la trazabilidad histórica de los cambios y sincroniza las actualizaciones con el Microservicio 1. Pruebas automatizadas con **PyTest** (cumpliendo expresamente la recomendación de la rúbrica).
 3. **Frontend Dashboard (`frontend` - Node.js BFF):** Aplicación web interactiva que permite a los usuarios visualizar el catálogo en tiempo real, insertar nuevos productos, actualizar datos mediante modal y consultar la bitácora de auditoría.
 
----
+Para el despliegue de la aplicación se opto por el uso de contenedores Docker y su orquestacion mediante
+docker compose para un rapido despliegue, tanto en local como en la nube.
 
-## 🏗️ Arquitectura de la Solución
+Como los contenedores requieren de una imagen, se crearon imágenes a partir del
+código de cada microservicio. Cada Dockerfile tiene 3 stages con el propósito de
+obtener una imagen optimizada para producción:
 
-```mermaid
-flowchart TD
-    subgraph Cliente["🖥️ Capa de Presentación"]
-        Browser["Navegador Web del Usuario"]
-    end
+1. **`deps`:** obtiene las dependencias (producción y desarrollo) de forma aislada.
+2. **`testing`:** ejecuta las pruebas unitarias (Jest o PyTest). Si fallan, la imagen no se construye.
+3. **`production`:** imagen final mínima, con usuario no root y solo con las dependencias de producción.
 
-    subgraph DockerCompose["🐳 Orquestación Docker Compose (devops-microservicios-net)"]
-        Frontend["Frontend Dashboard\n(Node.js Express BFF)\nPuerto: 3000"]
-        
-        subgraph MS1["Microservicio 1 (IE1 - Node.js)"]
-            ServiceCreate["microservicio-creacion\n(Node.js 20 Alpine Multi-stage)\nPuerto: 3001"]
-            ListStore[("Lista en Memoria\n• Mouse ($19.990)\n• Teclado ($45.990)\n• Monitor ($139.990)")]
-        end
-
-        subgraph MS2["Microservicio 2 (IE1 - Python)"]
-            ServiceUpdate["microservicio-actualizacion\n(Python 3.12 Debian Slim Hardened)\nPuerto: 3002"]
-            AuditStore[("Historial de Auditoría\n(Registro de Cambios)")]
-        end
-    end
-
-    subgraph CICD["🚀 Pipeline GitHub Actions (IE2, IE3, IE4)"]
-        UnitTests["Pruebas Unitarias\nJest (Node.js) & PyTest (Python) >80%"]
-        SecurityScan["Escaneo de Seguridad\nSnyk / Trivy / npm audit"]
-        DockerBuild["Construcción Docker\nMulti-stage Alpine vs Python Slim"]
-        SimDeploy["Despliegue Simulado\nDocker Compose CI Runner"]
-    end
-
-    Browser -->|HTTP :3000| Frontend
-    Frontend -->|POST / Inserción & GET / Consulta| ServiceCreate
-    Frontend -->|PUT / Actualización & Historial| ServiceUpdate
-    ServiceCreate --- ListStore
-    ServiceUpdate -->|PUT / Sincronización Interna| ServiceCreate
-    ServiceUpdate --- AuditStore
-    CICD -.->|Valida, Construye y Despliega| DockerCompose
-```
+La configuración (puertos, URLs entre servicios, `NODE_ENV`, etc.) no está dentro
+de las imágenes: se inyecta al ejecutar los contenedores desde un archivo `.env`
+(ver `.env.example`).
 
 ---
 
-## 🎯 Cumplimiento de la Rúbrica de Evaluación
+## Calidad de la aplicación
 
-| Criterio / Indicador | Requisito de la Rúbrica | Implementación en este Proyecto | Estado |
-| :--- | :--- | :--- | :---: |
-| **IE1 (20%)** | Crear dos Dockerfile distintos para contenerizar dos microservicios. | **Dockerfile 1:** Node.js Alpine Linux Multi-Stage (`node:20-alpine`) de tamaño mínimo y usuario `node`.<br>**Dockerfile 2:** Python Debian Slim (`python:3.12-slim`) reforzado con `curl`, directiva nativa `HEALTHCHECK` y usuario `appuser`. | ✅ Logrado |
-| **IE2 (20%)** | Pruebas unitarias automatizadas en el pipeline CI con frameworks estándar (JaCoCo / PyTest). | Implementación de suites con **Jest** (Node.js) y **PyTest** (Python). Cobertura verificada superior al 80% en todas las suites. | ✅ Logrado |
-| **IE3 (20%)** | Dependabot, escaneo de dependencias y bloqueos si falla la seguridad. | `.github/dependabot.yml` activo para npm, pip y Actions.<br>Análisis SCA estricto y escáner Aqua Security Trivy.<br>Quality Gate con script de interrupción y emisión de alertas de gobernanza. | ✅ Logrado |
-| **IE4 (20%)** | Despliegue automático en entorno simulado y trazabilidad garantizada. | Job de despliegue en GitHub Actions con Docker Compose, Smoke Tests mediante `curl` y generación de manifiesto inmutable `.trazabilidad/despliegue_<sha>.json`. | ✅ Logrado |
-| **IE5 (20%)** | Estrategia de orquestación con Docker Compose. | `docker-compose.yml` que orquesta los 3 servicios con red bridge aislada, healthchecks condicionales (`depends_on`), políticas de reinicio y gobernanza de recursos (límites de CPU y RAM). | ✅ Logrado |
+Para asegurarse de la calidad de la aplicación se opto por pruebas de codigo mediante
+herramientas como pytest para python y jest + supertest para nodejs  para asegurar un codigo limpio y listo para producción.
+
+Estas pruebas se ejecutan tanto en el stage `testing` de la creación de la imagen
+de Docker como en el proceso de CI/CD del proyecto, con la restricción de que si
+fallan, el código no se construye ni se despliega. Jest además exige un mínimo de
+80 % de cobertura.
+
+Además, durante el pipeline se ejecutan `npm audit` y Trivy para detectar
+vulnerabilidades en las dependencias, y Dependabot (`.github/dependabot.yml`)
+mantiene las dependencias actualizadas.
+
+
+
+---
+
+## Proceso de CI/CD
+
+El flujo `.github/workflows/ci-cd.yml` se activa con:
+
+- un **push** a `main`, `master` o `feature/**`,
+- un **pull request** hacia `main` o `master`,
+- una ejecución manual (`workflow_dispatch`).
+
+Está compuesto por 5 jobs encadenados; si uno falla, los siguientes no se ejecutan:
+
+| # | Job | Qué hace |
+|---|-----|----------|
+| 1 | `unit-tests` | Ejecuta Jest (microservicio de creación) y PyTest con cobertura (microservicio de actualización). Publica los reportes de cobertura como artefacto. |
+| 2 | `security-analysis` | Auditoría de dependencias con `npm audit --audit-level=high` (bloquea ante vulnerabilidades altas o críticas) y escaneo con Trivy (informa, no bloquea). |
+| 3 | `docker-build` | Construye las 3 imágenes (los stages `testing` vuelven a correr las pruebas) y, en `main`/`master`, las **publica en Docker Hub**. |
+| 4 | `deploy-simulation` | Levanta todo con Docker Compose dentro del runner, ejecuta pruebas de humo (`/health` de los 3 servicios) y genera el registro de trazabilidad del despliegue. |
+| 5 | `deploy-ec2` | Despliega en la instancia EC2 de AWS usando **SSM Run Command**. Solo en `main`/`master`. |
+
+### Publicación de imágenes (Docker Hub)
+
+Las imágenes se publican como `<DOCKERHUB_USERNAME>/microservicio-creacion`,
+`<DOCKERHUB_USERNAME>/microservicio-actualizacion` y
+`<DOCKERHUB_USERNAME>/frontend-dashboard`, con dos tags: el SHA del commit
+(inmutable, permite trazar y volver a una versión anterior) y `latest`.
+
+En pull requests y ramas `feature/**` las imágenes solo se construyen para validar,
+sin publicarlas y sin usar secrets.
+
+### Despliegue en AWS (EC2 + SSM)
+
+El job `deploy-ec2` no abre conexiones SSH: usa las credenciales de AWS para enviar
+un comando a la instancia mediante SSM (`.github/scripts/deploy-ec2.sh`). En la EC2
+ese script:
+
+1. Escribe el `docker-compose.yml` y un `.env` en `/opt/microservicios`. El `.env` sale de
+   `.env.example` con `IMAGE_TAG` igual al SHA del commit desplegado.
+2. Descarga las imágenes desde Docker Hub (`docker compose pull`); no se construye nada en la instancia.
+3. Levanta los contenedores (`docker compose up -d --no-build`).
+4. Comprueba el `/health` de los tres servicios. Si alguno no responde, el despliegue se marca como fallido.
+
+El job espera el resultado del comando y muestra su salida en el log del pipeline.
+
+### Secrets requeridos
+
+Se configuran en GitHub, en *Settings → Secrets and variables → Actions*:
+
+| Secret | Uso |
+|--------|-----|
+| `DOCKERHUB_USERNAME` | Usuario de Docker Hub; también es el prefijo de los nombres de las imágenes. |
+| `DOCKERHUB_TOKEN` | Token de acceso de Docker Hub con permiso de **push**. |
+| `AWS_SECRET_KEY_ID` | Access key ID del usuario IAM que ejecuta el despliegue. |
+| `AWS_SECRET_ACCESS_KEY` | Secret access key de ese usuario IAM. |
+| `AWS_REGION` | Región de AWS donde está la instancia (por ejemplo `us-east-1`). |
+| `EC2_INSTANCE_ID` | ID de la instancia EC2 destino (`i-xxxxxxxxxxxxxxxxx`). |
+
+El token de Docker Hub no se envía a la EC2. Si los repositorios de Docker Hub son
+privados, hay que ejecutar `docker login` una vez directamente en la instancia.
+
+### Requisitos de la instancia EC2
+
+- SSM Agent instalado y un rol de instancia con la política `AmazonSSMManagedInstanceCore`.
+- Docker con el plugin Docker Compose instalado.
+- Security Group con los puertos `3000`, `3001` y `3002` abiertos según corresponda.
+- El usuario IAM del pipeline necesita, como mínimo, los permisos `ssm:SendCommand` y `ssm:GetCommandInvocation`.
 
 ---
 
@@ -78,6 +118,8 @@ flowchart TD
 Evaluacion_2/
 ├── .github/
 │   ├── dependabot.yml                      # Configuración de escaneo continuo Dependabot (IE3)
+│   ├── scripts/
+│   │   └── deploy-ec2.sh                   # Script que se ejecuta en la EC2 vía SSM
 │   └── workflows/
 │       └── ci-cd.yml                       # Pipeline CI/CD en GitHub Actions (IE1, IE2, IE3, IE4)
 ├── microservicio-creacion/                 # Microservicio 1: Catálogo y Creación (Node.js)
@@ -90,7 +132,7 @@ Evaluacion_2/
 │   │       └── productStore.js             # Almacén en lista: Mouse, Teclado, Monitor
 │   ├── tests/
 │   │   └── product.test.js                 # 14 Pruebas unitarias Jest + Supertest (IE2)
-│   ├── Dockerfile                          # Dockerfile Alpine Multi-Stage (IE1)
+│   ├── Dockerfile                          # Dockerfile Alpine de 3 stages: deps, testing, production (IE1)
 │   ├── .dockerignore
 │   ├── package.json
 │   └── README.md
@@ -109,9 +151,10 @@ Evaluacion_2/
 │   │   ├── __init__.py
 │   │   ├── test_update.py                  # 14 Pruebas unitarias Flask + PyTest (IE2)
 │   │   └── test_catalog_client.py          # 7 Pruebas unitarias de cliente HTTP (PyTest)
-│   ├── Dockerfile                          # Dockerfile Python Debian Slim con Healthcheck nativo (IE1)
+│   ├── Dockerfile                          # Dockerfile Python Debian Slim de 3 stages con Healthcheck nativo (IE1)
 │   ├── .dockerignore
-│   ├── requirements.txt                    # Dependencias Python (Flask, Requests, PyTest)
+│   ├── requirements.txt                    # Dependencias de producción (Flask, Requests)
+│   ├── requirements-dev.txt                # Dependencias de pruebas (PyTest, PyTest-Cov)
 │   └── README.md
 ├── frontend/                               # Interfaz gráfica de usuario (Dashboard)
 │   ├── public/
@@ -122,6 +165,7 @@ Evaluacion_2/
 │   ├── Dockerfile                          # Contenedor para la capa frontend
 │   ├── .dockerignore
 │   └── package.json
+├── .env.example                            # Plantilla de variables de entorno para Docker Compose
 ├── docker-compose.yml                      # Orquestación con redes, healthchecks y resource limits (IE5)
 ├── README.md                               # Documento principal de la evaluación
 ├── PIPELINE.md                             # Documentación exhaustiva del pipeline CI/CD
@@ -163,25 +207,11 @@ Evaluacion_2/
 
 ---
 
-## 🐳 Comparativa de Estrategias de Contenerización (IE1)
 
-Para dar cumplimiento cabal al indicador **IE1**, ambos microservicios cuentan con Dockerfiles técnicamente diferenciados:
 
-| Atributo | Dockerfile 1 (`microservicio-creacion`) | Dockerfile 2 (`microservicio-actualizacion`) |
-| :--- | :--- | :--- |
-| **Ecosistema / Lenguaje** | Node.js 20 (JavaScript / npm) | Python 3.12 (CPython / pip) |
-| **Imagen Base** | `node:20-alpine` (musl libc) | `python:3.12-slim` (glibc Debian) |
-| **Patrón de Diseño** | **Multi-Stage Build** (Etapas `builder` y `runner`) | **Hardened Production Container** |
-| **Herramientas de Red** | Mínimo absoluto (sin `curl`, dependencias estrictas) | Incorpora `curl` instalado con `apt-get` |
-| **Health Check** | Evaluado a través del runtime Node o Compose | Directiva nativa Docker `HEALTHCHECK` embebida |
-| **Seguridad** | Usuario no root `USER node` | Usuario no root `USER appuser` |
-| **Peso Optimizado** | ~140 MB | ~180 MB |
+##  Instrucciones de Ejecución
 
----
-
-## 🚀 Instrucciones de Ejecución
-
-### Opción A: Despliegue con Docker Compose (Recomendada - IE5)
+### Despliegue con Docker Compose (Recomendada - IE5)
 
 Asegúrate de contar con Docker Desktop en ejecución y corre:
 
@@ -189,13 +219,16 @@ Asegúrate de contar con Docker Desktop en ejecución y corre:
 # 1. Posicionarse en el directorio del proyecto
 cd "Evaluacion_2"
 
-# 2. Construir y levantar todos los contenedores en segundo plano
+# 2. Crear el archivo de variables de entorno (obligatorio, el compose falla sin él)
+cp .env.example .env
+
+# 3. Construir y levantar todos los contenedores en segundo plano
 docker compose up -d --build
 
-# 3. Comprobar el estado de salud de los servicios
+# 4. Comprobar el estado de salud de los servicios
 docker compose ps
 
-# 4. Acceder al Frontend Dashboard en el navegador
+# 5. Acceder al Frontend Dashboard en el navegador
 # Abre: http://localhost:3000
 ```
 
@@ -203,89 +236,3 @@ Para detener la solución:
 ```bash
 docker compose down
 ```
-
-### Opción B: Ejecución Local en Entorno de Desarrollo
-
-Si deseas probar cada microservicio independientemente en tu máquina:
-
-```bash
-# Terminal 1: Microservicio 1 (Creación - Node.js)
-cd microservicio-creacion
-npm install
-npm run start # Disponible en http://localhost:3001
-
-# Terminal 2: Microservicio 2 (Actualización - Python)
-cd microservicio-actualizacion
-pip install -r requirements.txt
-python src/server.py # Disponible en http://localhost:3002
-
-# Terminal 3: Frontend Dashboard (Node.js)
-cd frontend
-npm install
-npm run start # Disponible en http://localhost:3000
-```
-
----
-
-## 🧪 Pruebas Unitarias y Cobertura (IE2)
-
-Para ejecutar las pruebas automatizadas y visualizar la cobertura de código:
-
-```bash
-# Pruebas en Microservicio de Creación (Node.js - Jest)
-cd microservicio-creacion
-npm test
-
-# Pruebas en Microservicio de Actualización (Python - PyTest)
-cd microservicio-actualizacion
-pytest --cov=src --cov-report=term-missing
-```
-
-### Resultados de Cobertura Obtenidos:
-- **Microservicio 1 (Node.js - Jest):** **96.38%** Statements | **92.3%** Branches | **94.44%** Functions | **96.25%** Lines (14 tests).
-- **Microservicio 2 (Python - PyTest):** **83%** Coverage global | **97%** en controlador de actualización | **96%** en app (21 tests).
-- **Total:** 35 pruebas unitarias automatizadas aprobadas, 0 fallos.
-
----
-
-## 📡 Ejemplos de Pruebas con cURL (API Testing)
-
-### 1. Listar catálogo actual (Mouse, Teclado, Monitor):
-```bash
-curl -X GET http://localhost:3001/api/productos
-```
-
-### 2. Insertar un nuevo producto (Microservicio 1 - Node.js):
-```bash
-curl -X POST http://localhost:3001/api/productos \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nombre": "Auriculares HyperX",
-    "precio": 59990,
-    "descripcion": "Auriculares estéreo para gaming con almohadillas viscoelásticas"
-  }'
-```
-
-### 3. Actualizar información de un producto (Microservicio 2 - Python):
-```bash
-curl -X PUT http://localhost:3002/api/actualizaciones/1 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "precio": 22990,
-    "descripcion": "Mouse óptico inalámbrico actualizado con 8000 DPI",
-    "motivo": "Reajuste de precios del distribuidor"
-  }'
-```
-
-### 4. Consultar la bitácora de auditoría (Microservicio 2 - Python):
-```bash
-curl -X GET http://localhost:3002/api/actualizaciones/historial
-```
-
----
-
-## 📚 Documentación Adicional del Proyecto
-
-- [PIPELINE.md](file:///C:/Users/arome/OneDrive/Escritorio/Utiles%20Duoc/6to%20Semestre/Ing.Devops/exp2/Ev2/Evaluacion_2/PIPELINE.md): Detalle técnico del flujo de CI/CD, triggers, jobs y gates de seguridad.
-- [CALIDAD_TRAZABILIDAD.md](file:///C:/Users/arome/OneDrive/Escritorio/Utiles%20Duoc/6to%20Semestre/Ing.Devops/exp2/Ev2/Evaluacion_2/CALIDAD_TRAZABILIDAD.md): Políticas de calidad, frameworks de pruebas, reglas de bloqueo y trazabilidad de despliegue.
-- [ARQUITECTURA.md](file:///C:/Users/arome/OneDrive/Escritorio/Utiles%20Duoc/6to%20Semestre/Ing.Devops/exp2/Ev2/Evaluacion_2/ARQUITECTURA.md): Decisiones de diseño arquitectónico, gobernanza de contenedores y resiliencia.

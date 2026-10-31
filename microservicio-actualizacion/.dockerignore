@@ -10,7 +10,6 @@ ENV/
 coverage/
 .coverage
 htmlcov/
-tests/
 Dockerfile*
 docker-compose*
 .dockerignore

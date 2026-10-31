@@ -10,6 +10,8 @@
 #   - Límites de recursos (CPU y Memoria) definidos por contenedor.
 #   - Red aislada tipo bridge (devops-network).
 #   - Políticas de reinicio y healthchecks síncronos con depends_on condicional.
+#   - Configuración externalizada: todas las variables se leen del archivo .env
+#     (ver .env.example); si falta alguna, `docker compose` aborta con un error.
 # ==============================================================================
 
 services:
@@ -18,15 +20,16 @@ services:
     build:
       context: ./microservicio-creacion
       dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME:?Definir DOCKERHUB_USERNAME en .env}/microservicio-creacion:${IMAGE_TAG:-latest}
     container_name: microservicio-creacion-app
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "${CREATE_PORT:?Definir CREATE_PORT en .env}:${CREATE_PORT}"
     environment:
-      - NODE_ENV=production
-      - PORT=3001
+      - NODE_ENV=${NODE_ENV:?Definir NODE_ENV en .env}
+      - PORT=${CREATE_PORT}
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:' + process.env.PORT + '/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -47,14 +50,15 @@ services:
     build:
       context: ./microservicio-actualizacion
       dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME:?Definir DOCKERHUB_USERNAME en .env}/microservicio-actualizacion:${IMAGE_TAG:-latest}
     container_name: microservicio-actualizacion-app
     restart: unless-stopped
     ports:
-      - "3002:3002"
+      - "${UPDATE_PORT:?Definir UPDATE_PORT en .env}:${UPDATE_PORT}"
     environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=3002
-      - CREATE_SERVICE_URL=http://service-create:3001
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:?Definir PYTHONUNBUFFERED en .env}
+      - PORT=${UPDATE_PORT}
+      - CREATE_SERVICE_URL=${CREATE_SERVICE_URL:?Definir CREATE_SERVICE_URL en .env}
     depends_on:
       service-create:
         condition: service_healthy
@@ -74,15 +78,16 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME:?Definir DOCKERHUB_USERNAME en .env}/frontend-dashboard:${IMAGE_TAG:-latest}
     container_name: frontend-dashboard-app
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:?Definir FRONTEND_PORT en .env}:${FRONTEND_PORT}"
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - CREATE_SERVICE_URL=http://service-create:3001
-      - UPDATE_SERVICE_URL=http://service-update:3002
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${FRONTEND_PORT}
+      - CREATE_SERVICE_URL=${CREATE_SERVICE_URL}
+      - UPDATE_SERVICE_URL=${UPDATE_SERVICE_URL:?Definir UPDATE_SERVICE_URL en .env}
     depends_on:
       service-create:
         condition: service_healthy

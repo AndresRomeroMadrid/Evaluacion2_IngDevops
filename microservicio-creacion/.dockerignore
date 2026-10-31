@@ -5,7 +5,6 @@ docker-compose*
 .dockerignore
 .git
 .github
-tests
 coverage
 .env
 README.md
