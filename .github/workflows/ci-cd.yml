@@ -60,7 +60,7 @@ jobs:
           pytest --cov=src --cov-report=term-missing --cov-report=html:coverage
 
       - name: Publicar artefactos de cobertura
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: reportes-cobertura
@@ -246,7 +246,7 @@ jobs:
           cat .trazabilidad/despliegue_${{ github.sha }}.json
 
       - name: Almacenar Registro de Trazabilidad como Artefacto
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trazabilidad-despliegue
           path: .trazabilidad/
