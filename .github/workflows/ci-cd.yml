@@ -142,7 +142,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Construir Imagen Microservicio 1 (Node Alpine Multi-Stage)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./microservicio-creacion
           file: ./microservicio-creacion/Dockerfile
@@ -154,7 +154,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Construir Imagen Microservicio 2 (Python Debian Slim Hardened)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./microservicio-actualizacion
           file: ./microservicio-actualizacion/Dockerfile
@@ -166,7 +166,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Construir Imagen Frontend Dashboard
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
