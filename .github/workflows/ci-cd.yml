@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Clonar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar Node.js (v20)
         uses: actions/setup-node@v4
@@ -77,7 +77,7 @@ jobs:
 
     steps:
       - name: Clonar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar Node.js (v20)
         uses: actions/setup-node@v4
@@ -129,7 +129,7 @@ jobs:
 
     steps:
       - name: Clonar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -183,7 +183,7 @@ jobs:
 
     steps:
       - name:  Clonar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name:  Crear archivo .env desde .env.example
         run: cp .env.example .env
@@ -268,7 +268,7 @@ jobs:
 
     steps:
       - name: Clonar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar credenciales de AWS
         uses: aws-actions/configure-aws-credentials@v4
